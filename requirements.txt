@@ -1,0 +1,6 @@
+Flask==2.2.2
+numpy==1.26.4
+pandas==2.2.2
+Requests==2.31.0
+gunicorn==21.2.0
+Werkzeug==2.2.2
