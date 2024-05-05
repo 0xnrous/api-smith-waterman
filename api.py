@@ -389,12 +389,14 @@ def index():
 
 @app.route('/compare', methods=['POST'])
 def compare():
-    if 'file_a' not in request.files or 'file_b' not in request.files:
-        return "Please upload both files."
+    if 'file_a' not in request.files['file_a'] or 'file_b' not in request.files['file_b']:
+        return jsonify({
+            "message": "Please upload a file for both DNA sequences.",
+            "statusCode": 401 })
+
 
     file_a = request.files['file_a']
     file_b = request.files['file_b']
-
     
     sequence_a = process_uploaded_file(file_a)
     sequence_b = process_uploaded_file(file_b)
@@ -419,9 +421,10 @@ def compare():
     return jsonify({
         #"alignment_a": alignment_a,
         #"alignment_b": alignment_b,
-        "similarity_percentage": similarity_percentage,
+        "similarity_percentage": similarity_percentage, # 100
         #"similarity_score": similarity_score,
-        "match_status": match_status
+        "match_status": match_status ,  # "DNA MATCH" or "DNA Not MATCH"
+        "statusCode": 200
     })
     
 @app.route('/result')
@@ -433,9 +436,10 @@ def result():
 
 def identify():
     # Check if 'file' parameter is provided in the request
-    if 'file' not in request.files:
-        return jsonify({"error": "Please upload a file."})
-
+    if 'file' not in request.files['file']:
+        return jsonify({
+            "message": "Please upload a file of DNA sequences.",
+            "statusCode": 401 })
     # Get the uploaded file and selected status from the form
     file_a = request.files['file']
     selected_status = request.form.get('status')
@@ -443,7 +447,9 @@ def identify():
     # Retrieve API data
     api_data = retrieve_api_data(API_URL)
     if 'error' in api_data:
-        return jsonify({"error": api_data['error']})
+        return jsonify({
+            "message": api_data['error'],
+            "statusCode": 401 })
 
     # Retrieve DNA sequence from the uploaded file
     sequence_a = retrieve_dna_sequence_from_file(file_a)
@@ -485,7 +491,8 @@ def identify():
     # Return the match information
     return jsonify({"match_info": match_info, 
                     "similarity_percentage": similarity_percentage,
-                    "match_status": match_status})
+                    "match_status": match_status , 
+                    "statusCode": 200})
 
 if __name__ == "__main__":
     app.run(debug=True)
