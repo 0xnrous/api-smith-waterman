@@ -429,6 +429,7 @@ def compare():
         "similarity_percentage": similarity_percentage, # 100
         #"similarity_score": similarity_score,
         "match_status": match_status ,  # "DNA MATCH" or "DNA Not MATCH"
+        "message": "Successfull Comparison",
         "statusCode": 200
     })
     
@@ -502,7 +503,8 @@ def identify():
     # Return the match information
     return jsonify({"match_info": match_info, 
                     "similarity_percentage": similarity_percentage,
-                    "match_status": match_status , 
+                    "match_status": match_status ,
+                    "message": "successful identification",
                     "statusCode": 200})
 
 if __name__ == "__main__":
