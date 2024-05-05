@@ -424,7 +424,7 @@ def compare():
         "match_status": match_status
     })
     
-app.route('/result')
+@app.route('/result')
 def result():
     return render_template('result.html')
 
