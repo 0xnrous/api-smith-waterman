@@ -389,10 +389,11 @@ def index():
 
 @app.route('/compare', methods=['POST'])
 def compare():
-    if 'file_a' not in request.files['file_a'] or 'file_b' not in request.files['file_b']:
+    if 'file_a' not in request.files or 'file_b' not in request.files:
         return jsonify({
             "message": "Please upload a file for both DNA sequences.",
-            "statusCode": 401 })
+            "statusCode": 401
+        })
 
 
     file_a = request.files['file_a']
@@ -400,7 +401,11 @@ def compare():
     
     sequence_a = process_uploaded_file(file_a)
     sequence_b = process_uploaded_file(file_b)
-
+    if file_a.filename == '' or file_b.filename == '':
+        return jsonify({
+            "message": "Please upload non-empty files for both DNA sequences.",
+            "statusCode": 401
+        })
     similarity = True
 
     # Load CSV files
@@ -436,12 +441,18 @@ def result():
 
 def identify():
     # Check if 'file' parameter is provided in the request
-    if 'file' not in request.files['file']:
+    if 'file' not in request.files:
         return jsonify({
             "message": "Please upload a file of DNA sequences.",
             "statusCode": 401 })
     # Get the uploaded file and selected status from the form
     file_a = request.files['file']
+    if file_a.filename == '':
+        return jsonify({
+            "message": "Please upload non-empty files for both DNA sequences.",
+            "statusCode": 401
+        })
+    similarity = True
     selected_status = request.form.get('status')
 
     # Retrieve API data
