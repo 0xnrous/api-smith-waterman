@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparison Results</title>
+    <title>Identify DNA</title>
 </head>
 <body>
-    <h1>Comparison Results</h1>
-    <!-- <h2>DNA Sequence Alignment:</h2> -->
-    <!-- <p><strong>Sequence A:</strong><br>{{ alignment_a }}</p> -->
-    <!-- <p><strong>Sequence B:</strong><br>{{ alignment_b }}</p> -->
-    <h2>Similarity Score:</h2>
-    <p>{{ similarity_score }}</p>
-    <h2>Match status:</h2>
-    <p>{{ match_status }}</p>
+    <h1>Identify DNA</h1>
+    <form action="/identify" method="post" enctype="multipart/form-data">
+        <label for="file">Upload a file:</label><br>
+        <input type="file" id="file" name="file"><br><br>
+        <label for="status">Select status:</label><br>
+        <select id="status" name="status">
+            <option value="missing">Missing</option>
+            <option value="acknowledged">Acknowledged</option>
+            <option value="crime">Crime</option>
+            <option value="disaster">Disaster</option>
+            <option value="all">All</option> <!-- New option for full database search -->
+        </select><br><br>
+        <input type="submit" value="Identify">
+    </form>
 </body>
 </html>
