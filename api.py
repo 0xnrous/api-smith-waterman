@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, request, jsonify,Flask
+from flask import Blueprint, render_template, request, jsonify,Flask , Response
 import numpy as np
 import pandas as pd
 from typing import Tuple, Dict, Any
 import requests
+import time
 import sys
 #from script import SequencesAnalyzer
 
@@ -397,11 +398,12 @@ def compare():
         "message": "Successfull Comparison",
         "statusCode": 200
     })
-    
+
+
+# Define a generator function to periodically send data to keep the connection alive
 @app.route('/result')
 def result():
     return render_template('result.html')
-
 #IDENTIFICATION
 @app.route('/identify', methods=['POST'])
 
@@ -410,14 +412,14 @@ def identify():
     if 'file' not in request.files:
         return jsonify({
             "message": "Please upload a file of DNA sequences.",
-            "statusCode": 401 })
+            "statusCode": 401 }), {'Connection': 'keep-alive'}
     # Get the uploaded file and selected status from the form
     file_a = request.files['file']
     if file_a.filename == '':
         return jsonify({
             "message": "Please upload non-empty files for both DNA sequences.",
             "statusCode": 401
-        })
+        }), {'Connection': 'keep-alive'}
     similarity = True
     selected_status = request.form.get('status')
 
@@ -426,7 +428,7 @@ def identify():
     if 'error' in api_data:
         return jsonify({
             "message": api_data['error'],
-            "statusCode": 401 })
+            "statusCode": 401 }), {'Connection': 'keep-alive'}
 
     # Retrieve DNA sequence from the uploaded file
     sequence_a = retrieve_dna_sequence_from_file(file_a)
@@ -469,17 +471,30 @@ def identify():
                     match_info["similarity_percentage"] = 100
                     match_info["match_status"] = "DNA MATCH"
                     matches.append(match_info)
-
+                    
+                    
+    # Simulate a long process
+    import time
+    time.sleep(5)
     # Return the match information
+    # Check if there are any matches found
     if matches:
-        return jsonify({"matches": matches,
-                        "message": "successful identification",
-                        "statusCode": 200})
+        response = jsonify({
+            "matches": matches,
+            "message": "successful identification",
+            "statusCode": 200
+        })
     else:
-        return jsonify({
+        response = jsonify({
             "message": "No matches found.",
             "statusCode": 400
         })
+
+    # Set the connection header to keep-alive
+    response.headers['Connection'] = 'keep-alive'
+    return response
+
+
 
 def show_missing_form():
     return render_template('missing.html')
