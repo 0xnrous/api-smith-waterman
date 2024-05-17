@@ -300,44 +300,6 @@ class SequencesAnalyzer:
         # Reverse strings (traceback goes from bottom-right to top-left)
         return seq_a_aligned[::-1], seq_b_aligned[::-1]
 
-# def main():
-#     if len(sys.argv) < 3:
-#         print("Usage: python script.py <sequence_a_file> <sequence_b_file> [--summary as --S] [--similarity as --s] [--edit-distance as --e ] [--alignment <global/local>]")
-#         return
-
-#     sequence_a_file = sys.argv[1]
-#     sequence_b_file = sys.argv[2]
-#     #summary = '-S' in sys.argv
-#     summary = False
-#     similarity = True
-#     #similarity = '-s' in sys.argv
-#     #edit_distance = '-e' in sys.argv
-#     # alignment = None
-#     # if '--alignment' in sys.argv:
-#     #     alignment_index = sys.argv.index('--alignment')
-#     #     alignment = sys.argv[alignment_index + 1] if alignment_index + 1 < len(sys.argv) else None
-
-#     # Load CSV files
-#     scoring_sys = ScoringSystems()
-#     scoring_sys.load_csv(SCORES_CSV)
-#     edit_cost_sys = ScoringSystems()
-#     edit_cost_sys.load_csv(EDIT_COST_CSV)
-
-#     with open(sequence_a_file, 'r') as file_a, open(sequence_b_file, 'r') as file_b:
-#         sequence_a = ''.join(line.strip()[:500] for line in file_a if not line.startswith('>'))
-#         sequence_b = ''.join(line.strip()[:500] for line in file_b if not line.startswith('>'))
-
-#     analyzer = SequencesAnalyzer(sequence_a, sequence_b )
-
-#     if summary:
-#         pass 
-#     elif similarity:
-#         #analyzer.similarity()
-#         alignment_a, alignment_b = analyzer.local_alignment()
-#         if analyzer.similarity() == 1000:
-#             print("DNA matched")
-#         else:
-#             print("Not matched")
 
 def process_uploaded_file(file):
     data = b''  # Initialize as bytes
@@ -346,6 +308,7 @@ def process_uploaded_file(file):
         line = line.strip()
         if line.startswith(b'>'):  # Compare with byte string
             continue  # Skip header lines
+        #remaining_length = 500 - total_length
         remaining_length = 500 - total_length
         if remaining_length <= 0:
             break  # Exit loop if the limit is reached
@@ -399,8 +362,12 @@ def compare():
     file_a = request.files['file_a']
     file_b = request.files['file_b']
     
-    sequence_a = process_uploaded_file(file_a)
-    sequence_b = process_uploaded_file(file_b)
+    # sequence_a = process_uploaded_file(file_a)
+    # sequence_b = process_uploaded_file(file_b)
+    
+    sequence_a = retrieve_dna_sequence_from_file(file_a)
+    sequence_b = retrieve_dna_sequence_from_file(file_b)
+    
     if file_a.filename == '' or file_b.filename == '':
         return jsonify({
             "message": "Please upload non-empty files for both DNA sequences.",
@@ -419,13 +386,11 @@ def compare():
     if similarity:
        # alignment_a, alignment_b = analyzer.local_alignment()
         similarity_score = int(analyzer.similarity())  # Convert to integer
-        match_status = "DNA MATCH" if similarity_score == 1000 else "DNA Not MATCH"
-        similarity_percentage = int((similarity_score / 1000) * 100)  # Convert to integer
+        match_status = "DNA MATCH" if similarity_score == 2000 else "DNA Not MATCH"
+        similarity_percentage = int((similarity_score / 2000) * 100)  # Convert to integer
     else:
         pass
     return jsonify({
-        #"alignment_a": alignment_a,
-        #"alignment_b": alignment_b,
         "similarity_percentage": similarity_percentage, # 100
         #"similarity_score": similarity_score,
         "match_status": match_status ,  # "DNA MATCH" or "DNA Not MATCH"
@@ -467,7 +432,7 @@ def identify():
     sequence_a = retrieve_dna_sequence_from_file(file_a)
 
     # Initialize variables for match information
-    match_info = {}
+    matches = []
     similarity_threshold = 2000  # Threshold for similarity score
     similarity_percentage = 0
     match_status = "No match found"
@@ -482,9 +447,14 @@ def identify():
         if selected_status == 'all':
             filtered_data = api_data['population']
         else:
+            valid_statuses = ['missing', 'acknowledged', 'crime', 'disaster']
+            if selected_status not in valid_statuses:
+                return jsonify({
+                "message": "Invalid status. Please select one of: 'missing', 'acknowledged', 'crime', 'disaster' or 'all' to search in all database.",
+                "statusCode": 400
+            })
             filtered_data = [entry for entry in api_data['population'] if entry.get('status') == selected_status]
 
-        # Iterate over filtered data
         for entry in filtered_data:
             if 'DNA_sequence' in entry:
                 # Retrieve DNA sequence for comparison
@@ -496,21 +466,125 @@ def identify():
                 if similarity_score == similarity_threshold:
                     # Extract match information
                     match_info = {key: entry[key] for key in info_keys if key in entry}
-                    match_status = "DNA MATCH"
-                    similarity_percentage = 100
-                    break  # Exit loop if a match is found
+                    match_info["similarity_percentage"] = 100
+                    match_info["match_status"] = "DNA MATCH"
+                    matches.append(match_info)
 
     # Return the match information
-    return jsonify({"match_info": match_info, 
-                    "similarity_percentage": similarity_percentage,
-                    "match_status": match_status ,
-                    "message": "successful identification",
-                    "statusCode": 200})
+    if matches:
+        return jsonify({"matches": matches,
+                        "message": "successful identification",
+                        "statusCode": 200})
+    else:
+        return jsonify({
+            "message": "No matches found.",
+            "statusCode": 400
+        })
+
+def show_missing_form():
+    return render_template('missing.html')
+@app.route('/missing', methods=['GET'])
+def missing():
+    return show_missing_form()
+
+@app.route('/missing', methods=['POST'])
+
+def upload_missing_data():
+    # Check if 'file' parameter is provided in the request
+    if 'file' not in request.files:
+        return jsonify({
+            "message": "Please upload a file of DNA sequences.",
+            "statusCode": 401
+        })
+    
+    # Get the uploaded file and selected status from the form
+    file_a = request.files['file']
+    if file_a.filename == '':
+        return jsonify({
+            "message": "Please upload non-empty files for both DNA sequences.",
+            "statusCode": 401
+        })
+
+    # Retrieve DNA sequence from the uploaded file
+    sequence_a = retrieve_dna_sequence_from_file(file_a)
+
+    # Retrieve API data
+    api_data = retrieve_api_data(API_URL)
+    if 'error' in api_data:
+        return jsonify({
+            "message": api_data['error'],
+            "statusCode": 401
+        })
+    # Initialize variables for match information
+    match_info = {}
+    similarity_threshold = 2000  # Threshold for similarity score
+    similarity_threshold_child = 1988  # Threshold for similarity score for potential children
+    potential_children_info = []
+
+    # Extract necessary keys for match information
+    info_keys = ['name', 'status', 'description', 'createdAt', 'updatedAt', 
+                 'address', 'national_id', 'phone', 'gender', 'birthdate', 'bloodType']
+
+    # Check if API data is a dictionary and contains 'population' key
+    if isinstance(api_data, dict) and 'population' in api_data:
+        # Iterate over the population data
+        for entry in api_data['population']:
+            if 'DNA_sequence' in entry:
+                # Retrieve DNA sequence for comparison
+                sequence_b = entry['DNA_sequence'][:1000]  # Limit to 1000 characters
+                
+                # Calculate similarity score
+                analyzer = SequencesAnalyzer(sequence_a, sequence_b)
+                similarity_score = analyzer.similarity()
+                similarity_percentage = round((similarity_score * 100) /2000)
+                # Check if similarity score meets the threshold
+                if similarity_score == similarity_threshold:
+                    # Extract match information
+                    #match_info = {key: entry.get(key) for key in info_keys}
+                    match_info = {key: entry[key] for key in info_keys if key in entry}
+                    match_status = "DNA MATCH"
+                if similarity_score >= similarity_threshold_child:
+                    # Check if the person has a child with a similarity score of 1988 or higher
+                    child_info = {key: entry[key] for key in info_keys if key in entry}
+                    potential_children_info.append({
+                        "child_data": child_info,
+                        "similarity_percentage_child": similarity_percentage
+                        })
+                    
+    if match_info:
+        # Check if the main match information matches with any potential relative information
+        duplicates = [child for child in potential_children_info if child["child_data"] == match_info]
+
+        # Remove duplicates from potential relatives
+        potential_children_info = [child for child in potential_children_info if child not in duplicates]
+
+        if potential_children_info:
+            return jsonify({
+                "potential_match_info": match_info,
+                "potential_relative_or_main_info": potential_children_info,
+                "message": "Successful identification",
+                "statusCode": 200
+            })
+        else:
+            return jsonify({
+                "main_match_info": match_info,
+                "potential_relative_info": [{
+                    "message": "No matching child found",
+                    "statusCode": 404
+                }],
+                "message": "Successful identification",
+                "statusCode": 200
+            })
+
+    else:
+        return jsonify({
+            "message": "No match found.",
+            "statusCode": 404
+        })
+
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
 
 # here i'm making the api (identify) case as 1000 from each one so total (2000) to match 
 # Also with when i upload the two files case each one 500 letter so total (1000) to match
