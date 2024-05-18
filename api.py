@@ -10,7 +10,7 @@ import sys
 app = Flask(__name__)
 
 # Import ScoringSystems and SequencesAnalyzer here
-API_URL = 'https://dna-testing-system.onrender.com/EisaAPI'
+API_URL = 'https://dna-testing-system.onrender.com/api/EisaAPI'
 SCORES_CSV = './scores.csv'
 EDIT_COST_CSV = './edit_cost.csv'
 
@@ -471,12 +471,6 @@ def identify():
                     match_info["similarity_percentage"] = 100
                     match_info["match_status"] = "DNA MATCH"
                     matches.append(match_info)
-                    
-                    
-    # Simulate a long process
-    import time
-    time.sleep(5)
-    # Return the match information
     # Check if there are any matches found
     if matches:
         response = jsonify({
