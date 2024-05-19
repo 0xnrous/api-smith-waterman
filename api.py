@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from typing import Tuple, Dict, Any
 import requests
+from celery import Celery
 import time
 import sys
 #from script import SequencesAnalyzer
@@ -347,6 +348,8 @@ def retrieve_api_data(API_URL):
             return {"error": "Failed to retrieve data from API"}
     except Exception as e:
         return {"error": str(e)}
+    
+    
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -474,7 +477,7 @@ def identify():
     # Check if there are any matches found
     if matches:
         response = jsonify({
-            "matches": matches,
+            "matches": match_info,
             "message": "successful identification",
             "statusCode": 200
         })
