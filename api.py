@@ -472,13 +472,14 @@ def identify():
                     # Extract match information
                     match_info = {key: entry[key] for key in info_keys if key in entry}
                     match_info["similarity_percentage"] = 100
-                    match_info["match_status"] = "DNA MATCH"
+                    #match_info["match_status"] = "DNA MATCH"
                     matches.append(match_info)
     # Check if there are any matches found
     if matches:
         response = jsonify({
             "matches": match_info,
             "message": "successful identification",
+            "match_status": "DNA MATCH",
             "statusCode": 200
         })
     else:
